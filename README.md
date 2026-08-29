@@ -120,6 +120,8 @@ It produces a structured decision such as:
 LangGraph then routes execution to the selected node.
 
 Project Structure
+
+```
 incidentgraph/
 │
 ├── backend/
@@ -191,6 +193,7 @@ incidentgraph/
 ├── requirements.txt
 ├── docker-compose.yml
 └── README.md
+```
 
 Requirements
 
