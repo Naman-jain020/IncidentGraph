@@ -40,6 +40,9 @@ def test_reasoning_node_returns_structured_decision():
     with patch(
         "nodes.reasoning._get_llm",
         return_value=FakeLLM(),
+    ), patch(
+        "nodes.reasoning.Config.GEMINI_API_KEY",
+        "mock-gemini-key",
     ):
         result = reasoning_node(state)
 

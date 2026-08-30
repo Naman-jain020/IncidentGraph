@@ -12,6 +12,8 @@ def test_create_incident_input():
         "repository": "acme/payment-service",
         "timestamp": "2026-08-29T14:30:00Z",
         "source": "test",
+        "aws_role_arn": "arn:aws:iam::123456789012:role/TestRole",
+        "log_group_name": "/aws/ecs/test-service",
     }
 
     state = create_incident_input(payload)
@@ -25,6 +27,8 @@ def test_create_incident_input():
     assert state["incident"]["repository"] == (
         "acme/payment-service"
     )
+    assert state["incident"]["aws_role_arn"] == "arn:aws:iam::123456789012:role/TestRole"
+    assert state["incident"]["log_group_name"] == "/aws/ecs/test-service"
     assert state["status"] == "investigating"
     assert state["findings"] == []
     assert state["evidence"] == []

@@ -64,8 +64,11 @@ def test_rca_node_generates_final_rca():
             return rca
 
     with patch(
-        "nodes.rca.ChatOpenAI",
+        "nodes.rca.ChatGoogleGenerativeAI",
         return_value=FakeLLM(),
+    ), patch(
+        "nodes.rca.Config.GEMINI_API_KEY",
+        "mock-gemini-key",
     ), patch(
         "nodes.rca.persist_incident"
     ):
