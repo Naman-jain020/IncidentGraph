@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 from agent.state import InvestigationState
@@ -32,14 +32,12 @@ def rca_node(
     """
     Generate the final evidence-backed RCA.
     """
-    if not Config.OPENAI_API_KEY:
-        raise RuntimeError(
-            "OPENAI_API_KEY is not configured."
-        )
+    if not Config.GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured.")
 
-    llm = ChatOpenAI(
-        model=Config.OPENAI_MODEL,
-        api_key=Config.OPENAI_API_KEY,
+    llm = ChatGoogleGenerativeAI(
+        model=Config.GEMINI_MODEL,
+        google_api_key=Config.GEMINI_API_KEY,
         temperature=0,
     ).with_structured_output(RCAResult)
 

@@ -47,11 +47,11 @@ class Config:
         "postgresql+psycopg://incidentgraph:incidentgraph@localhost:5432/incidentgraph",
     )
 
-    # OpenAI
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    OPENAI_MODEL = os.getenv(
-        "OPENAI_MODEL",
-        "gpt-5.6"
+    # Gemini
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    GEMINI_MODEL = os.getenv(
+        "GEMINI_MODEL",
+        "gemini-flash-latest"
     )
 
     # GitHub

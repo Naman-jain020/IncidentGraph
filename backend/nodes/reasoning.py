@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 
 from agent.state import InvestigationState
@@ -72,9 +72,9 @@ ERRORS:
 
 
 def _get_llm():
-    return ChatOpenAI(
-        model=Config.OPENAI_MODEL,
-        api_key=Config.OPENAI_API_KEY,
+    return ChatGoogleGenerativeAI(
+        model=Config.GEMINI_MODEL,
+        google_api_key=Config.GEMINI_API_KEY,
         temperature=0,
     )
 
@@ -102,10 +102,8 @@ def reasoning_node(
             ],
         }
 
-    if not Config.OPENAI_API_KEY:
-        raise RuntimeError(
-            "OPENAI_API_KEY is not configured."
-        )
+    if not Config.GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY is not configured.")
 
     llm = _get_llm().with_structured_output(
         InvestigationDecision
