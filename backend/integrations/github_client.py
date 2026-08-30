@@ -141,6 +141,38 @@ class GitHubClient:
             f"/repos/{owner}/{repo}/deployments/"
             f"{deployment_id}/statuses",
         )
+    
+    def list_repo_files(
+        self,
+        repository: str,
+        branch: str = "main",
+    ) -> list[str]:
+        """
+        Fetch all file paths in a GitHub repository recursively.
+        """
+        owner, repo = self._split_repository(repository)
+
+        try:
+            tree = self._request(
+                "GET",
+                f"/repos/{owner}/{repo}/git/trees/{branch}?recursive=1",
+            )
+            return [
+                item.get("path", "")
+                for item in tree.get("tree", [])
+                if item.get("type") == "blob"
+            ]
+        except Exception:
+            # Fallback if default branch is master or different
+            tree = self._request(
+                "GET",
+                f"/repos/{owner}/{repo}/git/trees/master?recursive=1",
+            )
+            return [
+                item.get("path", "")
+                for item in tree.get("tree", [])
+                if item.get("type") == "blob"
+            ]
 
     def investigate(
         self,

@@ -75,3 +75,10 @@ export async function getIncident(
 export async function getHealth() {
   return request("/health");
 }
+
+export async function analyzeRepository(repository) {
+  return request("/repos/analyze", {
+    method: "POST",
+    body: JSON.stringify({ repository }),
+  });
+}

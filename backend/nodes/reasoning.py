@@ -105,6 +105,25 @@ def reasoning_node(
     if not Config.GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY is not configured.")
 
+    incident = state.get("incident", {})
+
+    # Check permissions & user-provided credentials
+    has_aws_permission = bool(incident.get("aws_role_arn"))
+    has_mcp_permission = bool(incident.get("mcp_url")) or bool(Config.LATENTGRAPH_API_KEY)
+    has_log_permission = bool(incident.get("log_group_name")) or bool(Config.CLOUDWATCH_LOG_GROUP)
+
+    disabled_actions = []
+    if not has_aws_permission:
+        disabled_actions.append("aws_infra")
+    if not has_mcp_permission:
+        disabled_actions.append("latentgraph")
+    if not has_log_permission:
+        disabled_actions.append("observability")
+
+    system_prompt = INVESTIGATION_SYSTEM_PROMPT
+    if disabled_actions:
+        system_prompt += f"\n\nCRITICAL CONSTRAINTS: The user HAS NOT granted access to: {', '.join(disabled_actions)}. DO NOT select any of these actions under any circumstances."
+
     llm = _get_llm().with_structured_output(
         InvestigationDecision
     )
@@ -112,7 +131,7 @@ def reasoning_node(
     messages = [
         (
             "system",
-            INVESTIGATION_SYSTEM_PROMPT,
+            system_prompt,
         ),
         (
             "human",
@@ -122,10 +141,14 @@ def reasoning_node(
 
     decision = llm.invoke(messages)
 
+    final_action = decision.next_action
+    if final_action in disabled_actions:
+        final_action = "github" if "github" not in disabled_actions else "rca"
+
     history_entry = {
         "node": "reasoning",
         "step": current_step,
-        "decision": decision.next_action,
+        "decision": final_action,
         "reason": decision.reason,
         "query": decision.query,
         "hypothesis": decision.hypothesis,
@@ -143,7 +166,7 @@ def reasoning_node(
 
     return {
         "current_step": current_step,
-        "next_action": decision.next_action,
+        "next_action": final_action,
         "confidence": decision.confidence / 100.0,
         "hypotheses": hypotheses,
         "investigation_history": [

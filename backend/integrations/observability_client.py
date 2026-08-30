@@ -18,22 +18,50 @@ class ObservabilityClient:
     deployment. X-Ray integration can be added when tracing is enabled.
     """
 
-    def __init__(self):
-        self.session = boto3.Session(
-            region_name=Config.AWS_REGION,
-        )
+    def __init__(
+        self,
+        aws_role_arn: str | None = None,
+        region_name: str | None = None,
+        log_group_name: str | None = None,
+    ):
+        region = region_name or Config.AWS_REGION
+        self.log_group_name = log_group_name or Config.CLOUDWATCH_LOG_GROUP
 
-        self.logs = self.session.client(
-            "logs"
-        )
+        session_kwargs: dict[str, Any] = {
+            "region_name": region,
+        }
 
-        self.cloudwatch = self.session.client(
-            "cloudwatch"
-        )
+        if Config.AWS_ACCESS_KEY_ID:
+            session_kwargs["aws_access_key_id"] = Config.AWS_ACCESS_KEY_ID
 
-        self.xray = self.session.client(
-            "xray"
-        )
+        if Config.AWS_SECRET_ACCESS_KEY:
+            session_kwargs["aws_secret_access_key"] = Config.AWS_SECRET_ACCESS_KEY
+
+        if Config.AWS_SESSION_TOKEN:
+            session_kwargs["aws_session_token"] = Config.AWS_SESSION_TOKEN
+
+        base_session = boto3.Session(**session_kwargs)
+
+        if aws_role_arn:
+            sts_client = base_session.client("sts")
+            assumed_role = sts_client.assume_role(
+                RoleArn=aws_role_arn,
+                RoleSessionName="IncidentGraphObservabilitySession",
+            )
+            credentials = assumed_role["Credentials"]
+
+            session = boto3.Session(
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+                region_name=region,
+            )
+        else:
+            session = base_session
+
+        self.logs = session.client("logs")
+        self.cloudwatch = session.client("cloudwatch")
+        self.xray = session.client("xray")
 
     @staticmethod
     def _parse_time(
@@ -49,7 +77,8 @@ class ObservabilityClient:
         start_time: datetime,
         end_time: datetime,
     ) -> list[dict[str, Any]]:
-        if not Config.CLOUDWATCH_LOG_GROUP:
+        log_group = self.log_group_name
+        if not log_group:
             return []
 
         start_ms = int(
@@ -61,7 +90,7 @@ class ObservabilityClient:
         )
 
         response = self.logs.filter_log_events(
-            logGroupName=Config.CLOUDWATCH_LOG_GROUP,
+            logGroupName=log_group,
             startTime=start_ms,
             endTime=end_ms,
             filterPattern=service,

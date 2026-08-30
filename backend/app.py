@@ -5,7 +5,7 @@ from config import Config
 from api.incident_routes import incident_bp
 from api.webhook_routes import webhook_bp
 from api.health_routes import health_bp
-
+from api.repo_routes import repo_bp
 
 def create_app(config_class=Config) -> Flask:
     app = Flask(__name__)
@@ -23,6 +23,7 @@ def create_app(config_class=Config) -> Flask:
     app.register_blueprint(incident_bp, url_prefix="/api/incidents")
     app.register_blueprint(webhook_bp, url_prefix="/api/webhooks")
     app.register_blueprint(health_bp, url_prefix="/api/health")
+    app.register_blueprint(repo_bp, url_prefix="/api/repos")
 
     @app.errorhandler(400)
     def bad_request(error):

@@ -12,7 +12,11 @@ def observability_node(
     """
     incident = state["incident"]
 
-    client = ObservabilityClient()
+    client = ObservabilityClient(
+        aws_role_arn=incident.get("aws_role_arn"),
+        region_name=incident.get("aws_region"),
+        log_group_name=incident.get("log_group_name"),
+    )
 
     try:
         result = client.investigate(

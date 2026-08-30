@@ -8,29 +8,46 @@ from config import Config
 
 
 class AWSClient:
-    def __init__(self):
+    def __init__(
+        self,
+        aws_role_arn: str | None = None,
+        region_name: str | None = None,
+    ):
+        region = region_name or Config.AWS_REGION
+
+        # Base session using static credentials or default AWS provider chain
         session_kwargs: dict[str, Any] = {
-            "region_name": Config.AWS_REGION,
+            "region_name": region,
         }
 
         if Config.AWS_ACCESS_KEY_ID:
-            session_kwargs["aws_access_key_id"] = (
-                Config.AWS_ACCESS_KEY_ID
-            )
+            session_kwargs["aws_access_key_id"] = Config.AWS_ACCESS_KEY_ID
 
         if Config.AWS_SECRET_ACCESS_KEY:
-            session_kwargs["aws_secret_access_key"] = (
-                Config.AWS_SECRET_ACCESS_KEY
-            )
+            session_kwargs["aws_secret_access_key"] = Config.AWS_SECRET_ACCESS_KEY
 
         if Config.AWS_SESSION_TOKEN:
-            session_kwargs["aws_session_token"] = (
-                Config.AWS_SESSION_TOKEN
-            )
+            session_kwargs["aws_session_token"] = Config.AWS_SESSION_TOKEN
 
-        session = boto3.Session(
-            **session_kwargs
-        )
+        base_session = boto3.Session(**session_kwargs)
+
+        # If a user provided an IAM Role ARN, assume it dynamically via STS
+        if aws_role_arn:
+            sts_client = base_session.client("sts")
+            assumed_role = sts_client.assume_role(
+                RoleArn=aws_role_arn,
+                RoleSessionName="IncidentGraphSession",
+            )
+            credentials = assumed_role["Credentials"]
+
+            session = boto3.Session(
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+                region_name=region,
+            )
+        else:
+            session = base_session
 
         self.ecs = session.client("ecs")
         self.sqs = session.client("sqs")

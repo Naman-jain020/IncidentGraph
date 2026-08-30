@@ -12,7 +12,10 @@ def aws_infra_node(
     """
     incident = state["incident"]
 
-    client = AWSClient()
+    client = AWSClient(
+        aws_role_arn=incident.get("aws_role_arn"),
+        region_name=incident.get("aws_region"),
+    )
 
     try:
         result = client.investigate(
