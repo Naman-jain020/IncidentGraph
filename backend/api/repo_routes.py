@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from integrations.github_client import GitHubClient
+import requests
 
 repo_bp = Blueprint("repos", __name__)
 
@@ -17,9 +18,8 @@ def analyze_repository():
 
     try:
         github_client = GitHubClient()
-        # Scan repo file structure or tree
         files = github_client.list_repo_files(repo)
-        
+
         detected_configs = []
         required_user_inputs = []
 
@@ -65,5 +65,20 @@ def analyze_repository():
             "graph_status": "ready_for_indexing"
         }), 200
 
+    except requests.exceptions.RequestException as exc:
+        status_code = 500
+        error_msg = str(exc)
+        if hasattr(exc, "response") and exc.response is not None:
+            status_code = exc.response.status_code
+            try:
+                error_data = exc.response.json()
+                error_msg = error_data.get("message") or str(exc)
+            except Exception:
+                error_msg = exc.response.text or str(exc)
+
+        return jsonify({
+            "error": "github_api_error",
+            "message": f"GitHub API error ({status_code}): {error_msg}"
+        }), status_code
     except Exception as exc:
         return jsonify({"error": "analysis_failed", "message": str(exc)}), 500

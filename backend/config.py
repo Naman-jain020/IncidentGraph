@@ -29,7 +29,7 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-secret-key")
     DEBUG = _get_bool("FLASK_DEBUG", False)
     HOST = os.getenv("FLASK_HOST", "0.0.0.0")
-    PORT = _get_int("FLASK_PORT", 5000)
+    PORT = _get_int("FLASK_PORT", 5001)
 
     # Frontend
     CORS_ORIGINS = [
@@ -51,7 +51,7 @@ class Config:
     GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     GEMINI_MODEL = os.getenv(
         "GEMINI_MODEL",
-        "gemini-flash-latest"
+        "gemini-1.5-flash"
     )
 
     # GitHub

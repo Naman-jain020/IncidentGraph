@@ -14,15 +14,16 @@ class GitHubClient:
         self.session = requests.Session()
 
         if Config.GITHUB_TOKEN:
+            token = Config.GITHUB_TOKEN.strip()
+            auth_prefix = "Bearer" if token.startswith("github_pat_") else "token"
             self.session.headers.update({
-                "Authorization": (
-                    f"Bearer {Config.GITHUB_TOKEN}"
-                )
+                "Authorization": f"{auth_prefix} {token}"
             })
 
         self.session.headers.update({
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "IncidentGraph-App",
         })
 
     def _request(
@@ -46,18 +47,18 @@ class GitHubClient:
     def _split_repository(
         repository: str,
     ) -> tuple[str, str]:
-        repository = repository.rstrip("/")
+        repository = repository.strip().rstrip("/")
+        if repository.endswith(".git"):
+            repository = repository[:-4]
 
-        if repository.startswith(
-            "https://github.com/"
-        ):
-            repository = repository.removeprefix(
-                "https://github.com/"
-            )
+        if repository.startswith("https://github.com/"):
+            repository = repository.removeprefix("https://github.com/")
+        elif repository.startswith("http://github.com/"):
+            repository = repository.removeprefix("http://github.com/")
 
         parts = repository.split("/")
 
-        if len(parts) != 2:
+        if len(parts) != 2 or not parts[0] or not parts[1]:
             raise ValueError(
                 "Repository must be in 'owner/name' format."
             )
@@ -145,34 +146,26 @@ class GitHubClient:
     def list_repo_files(
         self,
         repository: str,
-        branch: str = "main",
     ) -> list[str]:
         """
         Fetch all file paths in a GitHub repository recursively.
         """
         owner, repo = self._split_repository(repository)
 
-        try:
-            tree = self._request(
-                "GET",
-                f"/repos/{owner}/{repo}/git/trees/{branch}?recursive=1",
-            )
-            return [
-                item.get("path", "")
-                for item in tree.get("tree", [])
-                if item.get("type") == "blob"
-            ]
-        except Exception:
-            # Fallback if default branch is master or different
-            tree = self._request(
-                "GET",
-                f"/repos/{owner}/{repo}/git/trees/master?recursive=1",
-            )
-            return [
-                item.get("path", "")
-                for item in tree.get("tree", [])
-                if item.get("type") == "blob"
-            ]
+        # 1. Fetch repository details to get actual default branch
+        repo_data = self._request("GET", f"/repos/{owner}/{repo}")
+        default_branch = repo_data.get("default_branch", "main")
+
+        # 2. Fetch git tree for default branch
+        tree = self._request(
+            "GET",
+            f"/repos/{owner}/{repo}/git/trees/{default_branch}?recursive=1",
+        )
+        return [
+            item.get("path", "")
+            for item in tree.get("tree", [])
+            if item.get("type") == "blob"
+        ]
 
     def investigate(
         self,

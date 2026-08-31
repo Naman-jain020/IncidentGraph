@@ -139,11 +139,16 @@ def reasoning_node(
         ),
     ]
 
+    import time
+    time.sleep(1)
+
     decision = llm.invoke(messages)
 
     final_action = decision.next_action
     if final_action in disabled_actions:
         final_action = "github" if "github" not in disabled_actions else "rca"
+
+    print(f"[NODE: reasoning] Step {current_step}/{Config.MAX_INVESTIGATION_STEPS} -> Selected Next Action: '{final_action}' (Reason: {decision.reason})", flush=True)
 
     history_entry = {
         "node": "reasoning",

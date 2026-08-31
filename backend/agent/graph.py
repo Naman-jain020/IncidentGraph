@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.checkpoint.memory import MemorySaver
 
 from agent.router import route_after_reasoning
 from agent.state import InvestigationState
@@ -122,14 +123,12 @@ def build_graph():
     return workflow
 
 
+_checkpointer = MemorySaver()
+
 @lru_cache(maxsize=1)
 def get_investigation_graph():
     """
     Compile and cache the application-wide investigation graph.
     """
     workflow = build_graph()
-
-    with get_checkpointer() as checkpointer:
-        return workflow.compile(
-            checkpointer=checkpointer
-        )
+    return workflow.compile(checkpointer=_checkpointer)

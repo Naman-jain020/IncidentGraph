@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from typing import Any
+from langgraph.checkpoint.memory import MemorySaver
 
 from config import Config
 
@@ -7,23 +8,29 @@ from config import Config
 @contextmanager
 def get_checkpointer():
     """
-    Creates the LangGraph Postgres checkpointer.
-
-    The import is kept inside the function so the backend can still
-    start in environments where checkpointing is disabled.
+    Creates the LangGraph checkpointer.
+    Uses PostgresSaver if PostgreSQL is reachable,
+    otherwise falls back to MemorySaver.
     """
     if not Config.LANGGRAPH_CHECKPOINT_ENABLED:
         yield None
         return
 
-    if not Config.DATABASE_URL:
-        yield None
-        return
+    conn_string = (Config.DATABASE_URL or "").replace("postgresql+psycopg://", "postgresql://")
 
-    from langgraph.checkpoint.postgres import PostgresSaver
+    if conn_string.startswith("postgresql://"):
+        try:
+            from langgraph.checkpoint.postgres import PostgresSaver
+            from psycopg import connect
 
-    with PostgresSaver.from_conn_string(
-        Config.DATABASE_URL
-    ) as checkpointer:
-        checkpointer.setup()
-        yield checkpointer
+            # Test connection first before compiling
+            with connect(conn_string, connect_timeout=3) as conn:
+                saver = PostgresSaver(conn)
+                saver.setup()
+                yield saver
+                return
+        except Exception:
+            pass
+
+    # Safe fallback to MemorySaver for robust graph execution
+    yield MemorySaver()

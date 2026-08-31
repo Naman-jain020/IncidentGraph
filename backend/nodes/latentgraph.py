@@ -22,6 +22,10 @@ def _extract_query(state: InvestigationState) -> str:
     )
 
 
+import logging
+
+logger = logging.getLogger("incidentgraph")
+
 def latentgraph_node(
     state: InvestigationState,
 ) -> InvestigationState:
@@ -29,6 +33,7 @@ def latentgraph_node(
     Gather code intelligence from LatentGraph.
     """
     incident = state["incident"]
+    print(f"[NODE: latentgraph] Investigating codebase for service: {incident.get('service')}", flush=True)
 
     client = LatentGraphClient(
         repository=incident.get("repository", ""),
@@ -54,6 +59,7 @@ def latentgraph_node(
         )
 
         code_context.update(result)
+        print(f"[NODE: latentgraph] Success! Code context gathered.", flush=True)
 
         return {
             "code_context": code_context,
@@ -68,6 +74,7 @@ def latentgraph_node(
         }
 
     except Exception as exc:
+        print(f"[NODE: latentgraph] Warning: LatentGraph MCP unavailable ({str(exc)}). Using fallback context.", flush=True)
         error = {
             "source": "latentgraph",
             "error": str(exc),

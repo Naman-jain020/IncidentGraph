@@ -60,6 +60,7 @@ def rca_node(
         "errors": state.get("errors"),
     }
 
+    print(f"[NODE: rca] Synthesizing final Root Cause Analysis with Gemini...", flush=True)
     result = llm.invoke([
         (
             "system",
@@ -67,9 +68,10 @@ def rca_node(
         ),
         (
             "human",
-            f"Investigation state:\n{context}",
+            f"Investigation State Context:\n{context}",
         ),
     ])
+    print(f"[NODE: rca] RCA generated successfully with {result.confidence}% confidence.", flush=True)
 
     final_rca = result.model_dump()
 

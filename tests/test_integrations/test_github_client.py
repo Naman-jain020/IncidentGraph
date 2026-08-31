@@ -5,11 +5,21 @@ from integrations.github_client import GitHubClient
 
 def test_split_repository():
     owner, repo = GitHubClient._split_repository(
-        "https://github.com/acme/payment-service"
+        "https://github.com/acme/payment-service.git "
     )
 
     assert owner == "acme"
     assert repo == "payment-service"
+
+
+def test_github_client_token_header_format():
+    with patch("integrations.github_client.Config.GITHUB_TOKEN", "ghp_123456"):
+        client = GitHubClient()
+        assert client.session.headers["Authorization"] == "token ghp_123456"
+
+    with patch("integrations.github_client.Config.GITHUB_TOKEN", "github_pat_789"):
+        client = GitHubClient()
+        assert client.session.headers["Authorization"] == "Bearer github_pat_789"
 
 
 def test_get_recent_commits():

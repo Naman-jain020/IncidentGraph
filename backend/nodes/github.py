@@ -12,6 +12,7 @@ def github_node(
     the affected service.
     """
     incident = state["incident"]
+    print(f"[NODE: github] Fetching commits, PRs, deployments for repo: {incident.get('repository')}", flush=True)
 
     client = GitHubClient()
 
